@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: get latest spk
+        run: |
+          wget -P spk https://down.sandai.net/nas/nasxunlei-DSM7-x86_64.spk
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
