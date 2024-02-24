@@ -4,8 +4,6 @@ ARG TARGETARCH
 ENV DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
 RUN if [ "${TARGETARCH}" != "arm64" -a "${TARGETARCH}" != "amd64" ]; then echo "arch ${TARGETARCH} is not supported"; exit 1; fi
 
-RUN sed -i 's/deb.debian.org/mirrors.bfsu.edu.cn/g' /etc/apt/sources.list && \
-    sed -i 's/security.debian.org/mirrors.bfsu.edu.cn/g' /etc/apt/sources.list
 RUN apt-get update && apt-get -y --no-install-recommends install ca-certificates xz-utils tzdata
 RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone
 
