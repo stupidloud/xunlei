@@ -1,58 +1,86 @@
 # 迅雷远程下载服务(非官方)
 
-## 说明
+[![GitHub Stars][1]][2] [![Docker Pulls][3]][5] [![Docker Version][4]][5]
 
-从迅雷群晖套件中提取出来用于其他Linux设备的迅雷远程下载服务程序。**已支持docker**
+[1]: https://img.shields.io/github/stars/cnk3x/xunlei?style=flat
+[2]: https://star-history.com/#cnk3x/xunlei&Date
+[3]: https://img.shields.io/docker/pulls/cnk3x/xunlei.svg
+[4]: https://img.shields.io/docker/v/cnk3x/xunlei
+[5]: https://hub.docker.com/r/cnk3x/xunlei
 
-本程序 **不要在群晖的机器上运行！** **不要在群晖的机器上运行！** **不要在群晖的机器上运行！** 群晖的机器使用迅雷官方提供的套件即可
+从迅雷群晖套件中提取出来用于其他设备的迅雷远程下载服务程序。仅供研究学习测试。 \
+本程序仅提供 Linux 模拟和容器化运行环境，未对原版迅雷程序进行任何修改。
 
-**提 issue 请一定要注明使用方式：docker 还是 本机服务运行， 是否root账号运行， arm64 还是 x86_64。**
+## 使用
 
-## 一键安装
+### Docker
 
-```sh
-# 安装
-sh -c "$(curl -fSsL https://raw.githubusercontent.com/cnk3x/xunlei/main/install.sh)" - install --port=2345 --download-dir=/download
-# 上面命令后面的参数 --port=后面接端口号, --download-dir=接下载文件夹，按自己的需求改
-# 下载文件夹装好后没得改了，要改的话，卸载重装，或者用软链接
-# 有时候安装失败，可以先运行卸载一次，再安装
-# 启动后，浏览器访问你的设备地址+端口号绑定迅雷就可以了。 比如： http://192.168.3.11:2345
-# 当前版本支持迅雷官方公测前的在线更新(不需要重新安装)
+#### 镜像
 
-# 卸载
-sh -c "$(curl -fSsL https://raw.githubusercontent.com/cnk3x/xunlei/main/uninstall.sh)"
-
-# 卸载旧版本v2.1.x
-sh -c "$(curl -fSsL https://raw.githubusercontent.com/cnk3x/xunlei/main/uninstall_old.sh)"
-
-# 服务控制
-# 启动
-systemctl start xunlei
-# 停止
-systemctl stop xunlei
-# 状态
-systemctl status xunlei
-# 查看日志(ctrl+c退出日志查看)
-journalctl -fu xunlei
+```plain
+cnk3x/xunlei:latest
+registry.cn-shenzhen.aliyuncs.com/cnk3x/xunlei:latest
+ghcr.io/cnk3x/xunlei:latest
 ```
 
-## 更新
+**常规**的容器，还是要在特权模式下运行。
 
-使用应用内更新的功能
+如果 docker 的存储驱动如果是 btrfs 或者 overlayfs，可以支持的非特权运行。
 
-## 自行编译
+#### 环境变量参数
 
-克隆源码
-1. 下载[官方的对应架构的群晖版迅雷spk文件](https://docs.qq.com/doc/DQVJpbEVGZXV0anNa)
-1. 用解压软件解压spk文件
-1. 找到里面的 package.tgz, 再解压一次
-1. 找到里面的文件: `xunlei-pan-cli-launcher.amd64`, `xunlei-pan-cli.版本号.amd64`, `index.cgi`
-1. 找到里面的文件: 与 `xunlei-pan-cli.版本号.amd64` 同目录的version文件
-1. 将 `index.cgi` 改名为 `xunlei-pan-cli-web`
-1. 将这四个文件复制到源码target目录
-1. 改你要改的，改完后编译。
+```bash
+XL_DASHBOARD_PORT      #网页访问的端口，默认 2345
+XL_DASHBOARD_IP        #网页访问的端口，默认 0.0.0.0（代表所有IP）
+XL_DASHBOARD_USERNAME  #网页访问的用户名
+XL_DASHBOARD_PASSWORD  #网页访问的密码
+XL_DIR_DOWNLOAD        #下载保存默认文件夹，默认 /xunlei/downloads，多个文件夹用冒号:分隔
+XL_DIR_DATA            #程序数据保存文件夹，默认 /xunlei/data
+XL_UID                 #运行迅雷的用户ID
+XL_GID                 #运行迅雷的用户组ID
+XL_PREVENT_UPDATE      #是否阻止更新，默认 true, 可选值 true/false, 1/0
+XL_CHROOT              #隔离运行主目录, 指定该值且不为`/`则以隔离模式运行, 用于在容器内隔离环境，容器内默认为 /xunlei，隔离模式运行需要特权模式(--privileged)，可以将该值设置为`/`来以非特权模式运行。非特权模式运行有条件，可以尝试失败后使用特权模式重新运行。
+XL_DEBUG               #调试模式, 可选值 true/false, 1/0
+```
 
-## Docker
+#### 在容器中运行
 
-https://github.com/cnk3x/xunlei/tree/docker
+```bash
+# docker run -d \
+#   -v <数据目录>:/xunlei/data \
+#   -v <默认下载保存目录>:/xunlei/downloads \
+#   -p <访问端口>:2345 \
+#   --privileged \
+#   cnk3x/xunlei
 
+# example
+docker run --privileged -v /mnt/sdb1/configs/xunlei:/xunlei/data -v /mnt/sdb1/downloads:/xunlei/downloads -p 2345:2345 cnk3x/xunlei
+
+# 如果你的docker存储驱动是 overlayfs 或者 btrfs等, 可以不用特权运行
+docker run -e XL_CHROOT=/ -v /mnt/sdb1/configs/xunlei:/xunlei/data -v /mnt/sdb1/downloads:/xunlei/downloads -p 2345:2345 cnk3x/xunlei
+
+```
+
+也可以直接运行
+
+```plain
+$ bin/xlp-amd64 --help
+
+Flags:
+  -p, --dashboard_port      网页访问的端口 (env: XL_DASHBOARD_PORT) (default 2345)
+  -i, --dashboard_ip        网页访问绑定IP，默认绑定所有IP (env: XL_DASHBOARD_IP)
+  -u, --dashboard_username  网页访问的用户名 (env: XL_DASHBOARD_USERNAME)
+  -k, --dashboard_password  网页访问的密码 (env: XL_DASHBOARD_PASSWORD)
+      --dir_download        下载保存文件夹，可多次指定，需确保有权限访问 (env: XL_DIR_DOWNLOAD) (default [/xunlei/downloads])
+      --dir_data            程序数据保存文件夹，其下'.drive'文件夹中，存储了登录的账号，下载进度等信息 (env: XL_DIR_DATA) (default "/xunlei/data")
+      --uid                 运行迅雷的用户ID (env: XL_UID, UID)
+      --gid                 运行迅雷的用户组ID (env: XL_GID, GID)
+      --prevent_update      阻止更新 (env: XL_PREVENT_UPDATE) (default true)
+  -r, --chroot              CHROOT主目录, 指定该值且不为/则以chroot模式运行, 用于在容器内隔离环境 (env: XL_CHROOT) (default "/")
+      --debug               是否开启调试日志 (env: XL_DEBUG)
+  -v, --version             显示版本信息
+```
+
+## Used By
+
+[kubespider](https://github.com/opennaslab/kubespider/blob/main/docs/zh/user_guide/thunder_install_config/README.md)
